@@ -8,7 +8,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
-import lombok.Setter;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,9 +15,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -94,12 +92,13 @@ public class Controller implements Initializable {
                         }
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
-                            Files.write(Paths.get(REPOSITORY_DIR + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+                            Path destPath = Paths.get(REPOSITORY_DIR + "/" + fm.getFilename());
+                            FilePartitionWorker.receiveFile(in, fm, destPath);
                         }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                }finally {
+                } finally {
                     try {
                         in.close();
                     } catch (IOException e) {
@@ -150,7 +149,6 @@ public class Controller implements Initializable {
     public void requestFileDownload( ActionEvent actionEvent ) {
         File file = mainList.getSelectionModel().getSelectedItem();
         CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD, file);
-
         sendMsg(cm);
     }
 }

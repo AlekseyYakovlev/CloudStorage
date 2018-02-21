@@ -1,4 +1,3 @@
-import lombok.Getter;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -14,5 +13,7 @@ public class ConnectionSettings {
 
     public static final int SERVER_PORT=8189;
     public static final Proxy CONNECTION_STRING = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(SERVER_IP,SERVER_PORT));
+
+    public static final int PACKAGE_SIZE_FOR_FILE_TRANSFER =10;
 
 }
