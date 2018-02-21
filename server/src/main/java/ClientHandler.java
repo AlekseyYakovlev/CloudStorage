@@ -21,19 +21,22 @@ public class ClientHandler {
 
     private Socket socket;
     private ObjectOutputStream out;
-    private ObjectInputStream in;
+    //private ObjectInputStream in;
 
     private String username;
 
-    public ClientHandler( Server server, Socket socket ) {
-        try {
+    public ClientHandler(Server server, Socket socket) {
+//        try {
             this.server = server;
             this.socket = socket;
-            this.in = new ObjectInputStream(socket.getInputStream());
-            this.out = new ObjectOutputStream(socket.getOutputStream());
+//            this.in = new ObjectInputStream(socket.getInputStream());
+//            this.out = new ObjectOutputStream(socket.getOutputStream());
 
             new Thread(() -> {
-                try {
+                try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                     ObjectOutputStream thr_out = new ObjectOutputStream(socket.getOutputStream());
+                ) {
+                    this.out = thr_out;
                     while (true) {
                         log.fine("Preparing to listen");
                         Object obj = in.readObject();
@@ -41,6 +44,7 @@ public class ClientHandler {
                         if (obj instanceof AuthMessage) {
                             AuthMessage am = (AuthMessage) obj;
                             log.fine("Authorization request");
+                            //TODO: Update authorization procedure
                             if (am.getLogin().equals("login") && am.getPass().equals("pass")) {
                                 log.fine("Authorization OK");
                                 this.username = "client";
@@ -79,35 +83,35 @@ public class ClientHandler {
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
-                }finally {
-                    try {
-                        in.close();
-                    } catch (IOException e) {
-                        log.warning("Error: IOException while closing in: " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                    try {
-                        out.close();
-                    } catch (IOException e) {
-                        log.warning("Error: IOException while closing out: " + e.getMessage());
-                        e.printStackTrace();
-                    }
+//                } finally {
+////                    try {
+////                        in.close();
+////                    } catch (IOException e) {
+////                        log.warning("Error: IOException while closing in: " + e.getMessage());
+////                        e.printStackTrace();
+////                    }
 //                    try {
-//                        this.socket.close();
+//                        out.close();
 //                    } catch (IOException e) {
+//                        log.warning("Error: IOException while closing out: " + e.getMessage());
 //                        e.printStackTrace();
 //                    }
+////                    try {
+////                        this.socket.close();
+////                    } catch (IOException e) {
+////                        e.printStackTrace();
+////                    }
                 }
 
             }).start();
             log.fine("New thread started for socket: " + socket.toString());
-        } catch (IOException e) {
-            log.severe("Error: IOException while operating with socket: " + e.getMessage());
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            log.severe("Error: IOException while operating with socket: " + e.getMessage());
+//            e.printStackTrace();
+//        }
     }
 
-    private void sendMsg( AbstractMessage cm ) {
+    private void sendMsg(AbstractMessage cm) {
         try {
             out.writeObject(cm);
             out.flush();
