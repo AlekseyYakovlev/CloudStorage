@@ -15,17 +15,17 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 public class Controller implements Initializable {
-    private static final String TAG = "client.Controller";
     private static final String REPOSITORY_DIR = "client/local_storage";
 
-
     @FXML
-    HBox authPanel, actionPanel;
+    HBox authPanel, actionPanel1, actionPanel2;
 
     @FXML
     TextField loginField;
@@ -34,7 +34,7 @@ public class Controller implements Initializable {
     PasswordField passField;
 
     @FXML
-    ListView<File> mainList;
+    ListView<File> cloudList, localList;
 
     private Socket socket;
     private ObjectOutputStream out;
@@ -42,22 +42,28 @@ public class Controller implements Initializable {
 
     private boolean authorized;
 
-    private ObservableList<File> filesList;
+    private ObservableList<File> cloudFilesList;
+    private ObservableList<File> localFilesList;
+
 
     @Override
     public void initialize( URL location, ResourceBundle resources ) {
         setAuthorized(false);
-        filesList = FXCollections.observableArrayList();
-        mainList.setItems(filesList);
-        //connect();
+        cloudFilesList = FXCollections.observableArrayList();
+        cloudList.setItems(cloudFilesList);
+        localFilesList = FXCollections.observableArrayList();
+        localList.setItems(localFilesList);
+        refreshLocalList();
     }
 
     public void setAuthorized( boolean authorized ) {
         this.authorized = authorized;
         authPanel.setManaged(!this.authorized);
         authPanel.setVisible(!this.authorized);
-        actionPanel.setManaged(this.authorized);
-        actionPanel.setVisible(this.authorized);
+        actionPanel1.setManaged(this.authorized);
+        actionPanel1.setVisible(this.authorized);
+        actionPanel2.setManaged(this.authorized);
+        actionPanel2.setVisible(this.authorized);
 
     }
 
@@ -67,7 +73,7 @@ public class Controller implements Initializable {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
 
-            new Thread(() -> {
+            Thread t = new Thread(() -> {
                 try {
                     while (true) {
 //                        System.out.println("Preparing to listen");
@@ -86,14 +92,15 @@ public class Controller implements Initializable {
                         if (obj instanceof FileListMessage) {
                             FileListMessage flm = (FileListMessage) obj;
                             Platform.runLater(() -> {
-                                filesList.clear();
-                                filesList.addAll(flm.getFiles());
+                                cloudFilesList.clear();
+                                cloudFilesList.addAll(flm.getFiles());
                             });
                         }
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
                             Path destPath = Paths.get(REPOSITORY_DIR + "/" + fm.getFilename());
                             FilePartitionWorker.receiveFile(in, fm, destPath);
+                            Platform.runLater(this::refreshLocalList);
                         }
                     }
                 } catch (Exception e) {
@@ -115,7 +122,9 @@ public class Controller implements Initializable {
 //                            e.printStackTrace();
 //                        }
                 }
-            }).start();
+            });
+            t.setDaemon(true);
+            t.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -147,8 +156,37 @@ public class Controller implements Initializable {
     }
 
     public void requestFileDownload( ActionEvent actionEvent ) {
-        File file = mainList.getSelectionModel().getSelectedItem();
+        File file = cloudList.getSelectionModel().getSelectedItem();
         CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD, file);
+        sendMsg(cm);
+    }
+
+    public void refreshLocalList() {
+        try {
+            localFilesList.clear();
+            localFilesList.addAll(Files.list(Paths.get(REPOSITORY_DIR)).map(Path::toFile).collect(Collectors.toList()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void btnDeleteFile( ActionEvent actionEvent ) {
+        try {
+            File selectedItem = localList.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) Files.delete(Paths.get(selectedItem.getAbsolutePath()));
+            refreshLocalList();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void btnRefreshLocal( ActionEvent actionEvent ) {
+        refreshLocalList();
+    }
+
+    public void btnRefreshCloud( ActionEvent actionEvent ) {
+        CommandMessage cm = new CommandMessage(CommandMessage.CMD_REQUEST_FILE_LIST);
         sendMsg(cm);
     }
 }

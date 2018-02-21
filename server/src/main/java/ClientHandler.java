@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-//TODO: 1:42:10
+//TODO: 0:45:21
 
 /**
  * @author Aleksey Yakovlev on 17.02.2018
@@ -68,12 +68,15 @@ public class ClientHandler {
 
                     if (obj instanceof CommandMessage) {
                         CommandMessage cm = (CommandMessage) obj;
-                        System.out.println("command message received");
+                        log.fine("command message received");
                         if (cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD) {
                             FilePartitionWorker.sendFile(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()), out);
-                            System.out.println("requested "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            log.fine("requested "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            continue;
                         }
+                        if(cm.getType() == CommandMessage.CMD_REQUEST_FILE_LIST) sendFileList();
                     }
+
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
