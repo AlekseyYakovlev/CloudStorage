@@ -22,7 +22,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
+    private static final String TAG = "client.Controller";
     private static final String REPOSITORY_DIR = "client/local_storage";
+
 
     @FXML
     HBox authPanel, actionPanel;
@@ -67,55 +69,52 @@ public class Controller implements Initializable {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        while (true) {
-                            System.out.println("Preparing to listen");
-                            Object obj = in.readObject();
-                            System.out.println("Have got an object");
-                            if (obj instanceof CommandMessage) {
-                                CommandMessage cm = (CommandMessage) obj;
-                                if (cm.getType() == CommandMessage.CMD_MSG_AUTH_OK) {
-                                    setAuthorized(true);
-                                    break;
-                                }
+            new Thread(() -> {
+                try {
+                    while (true) {
+//                        System.out.println("Preparing to listen");
+                        Object obj = in.readObject();
+//                        System.out.println("Have got an object");
+                        if (obj instanceof CommandMessage) {
+                            CommandMessage cm = (CommandMessage) obj;
+                            if (cm.getType() == CommandMessage.CMD_MSG_AUTH_OK) {
+                                setAuthorized(true);
+                                break;
                             }
-                        }
-                        while (true) {
-                            Object obj = in.readObject();
-                            if (obj instanceof FileListMessage) {
-                                FileListMessage flm = (FileListMessage) obj;
-                                Platform.runLater(() -> {
-                                    filesList.clear();
-                                    filesList.addAll(flm.getFiles());
-                                });
-                            }
-                            if (obj instanceof FileMessage) {
-                                FileMessage fm = (FileMessage) obj;
-                                Files.write(Paths.get(REPOSITORY_DIR + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }finally {
-                        try {
-                            in.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            out.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            socket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         }
                     }
+                    while (true) {
+                        Object obj = in.readObject();
+                        if (obj instanceof FileListMessage) {
+                            FileListMessage flm = (FileListMessage) obj;
+                            Platform.runLater(() -> {
+                                filesList.clear();
+                                filesList.addAll(flm.getFiles());
+                            });
+                        }
+                        if (obj instanceof FileMessage) {
+                            FileMessage fm = (FileMessage) obj;
+                            Files.write(Paths.get(REPOSITORY_DIR + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }finally {
+                    try {
+                        in.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+//                        try {
+//                            socket.close();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
                 }
             }).start();
         } catch (Exception e) {

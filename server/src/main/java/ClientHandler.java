@@ -1,3 +1,5 @@
+import lombok.extern.java.Log;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -11,6 +13,8 @@ import java.nio.file.StandardOpenOption;
  * @author Aleksey Yakovlev on 17.02.2018
  * @project CloudStorage
  */
+
+@Log
 public class ClientHandler {
     private static final String REPOSITORY_DIR = "server/repository";
     private Server server;
@@ -31,16 +35,19 @@ public class ClientHandler {
             new Thread(() -> {
                 try {
                     while (true) {
-                        System.out.println("Preparing to listen");
+                        log.fine("Preparing to listen");
                         Object obj = in.readObject();
-                        System.out.println("Have got an object");
+                        log.fine("Have got an object");
                         if (obj instanceof AuthMessage) {
                             AuthMessage am = (AuthMessage) obj;
+                            log.fine("Authorization request");
                             if (am.getLogin().equals("login") && am.getPass().equals("pass")) {
+                                log.fine("Authorization OK");
                                 this.username = "client";
                                 CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_AUTH_OK);
                                 sendMsg(cm);
                                 sendFileList();
+                                log.fine("Have got an object");
                                 break;
                             }
                         }
@@ -63,8 +70,10 @@ public class ClientHandler {
                                     FileMessage fm = new FileMessage(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()));
                                     sendMsg(fm);
                                 } catch (IOException e) {
+                                    log.severe("Error: IOException while getting requested file: " + e.getMessage());
                                     e.printStackTrace();
                                 }
+
                             }
                         }
                     }
@@ -74,22 +83,26 @@ public class ClientHandler {
                     try {
                         in.close();
                     } catch (IOException e) {
+                        log.warning("Error: IOException while closing in: " + e.getMessage());
                         e.printStackTrace();
                     }
                     try {
                         out.close();
                     } catch (IOException e) {
+                        log.warning("Error: IOException while closing out: " + e.getMessage());
                         e.printStackTrace();
                     }
-                    try {
-                        this.socket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        this.socket.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
                 }
 
             }).start();
+            log.fine("New thread started for socket: " + socket.toString());
         } catch (IOException e) {
+            log.severe("Error: IOException while operating with socket: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -98,7 +111,9 @@ public class ClientHandler {
         try {
             out.writeObject(cm);
             out.flush();
+            log.finest("Message sent");
         } catch (IOException e) {
+            log.severe("Error: IOException while sending Message: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -111,7 +126,9 @@ public class ClientHandler {
         try {
             FileListMessage flm = new FileListMessage(Paths.get(getUserRootPath()));
             sendMsg(flm);
+            log.fine("FileList sent");
         } catch (IOException e) {
+            log.severe("Error: IOException while sending FileList: " + e.getMessage());
             e.printStackTrace();
         }
     }

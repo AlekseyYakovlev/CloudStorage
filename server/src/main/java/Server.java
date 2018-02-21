@@ -7,6 +7,7 @@ import java.net.Socket;
  * @project CloudStorage
  */
 public class Server {
+    private static final String TAG = "server.Server";
     private ServerSocket serverSocket;
 
     public Server() {
