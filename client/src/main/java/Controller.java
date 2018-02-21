@@ -49,6 +49,7 @@ public class Controller implements Initializable {
         setAuthorized(false);
         filesList = FXCollections.observableArrayList();
         mainList.setItems(filesList);
+        //connect();
     }
 
     public void setAuthorized( boolean authorized ) {
@@ -71,7 +72,9 @@ public class Controller implements Initializable {
                 public void run() {
                     try {
                         while (true) {
+                            System.out.println("Preparing to listen");
                             Object obj = in.readObject();
+                            System.out.println("Have got an object");
                             if (obj instanceof CommandMessage) {
                                 CommandMessage cm = (CommandMessage) obj;
                                 if (cm.getType() == CommandMessage.CMD_MSG_AUTH_OK) {
@@ -96,7 +99,7 @@ public class Controller implements Initializable {
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                    } finally {
+                    }finally {
                         try {
                             in.close();
                         } catch (IOException e) {
@@ -136,9 +139,9 @@ public class Controller implements Initializable {
     }
 
 
-    private void sendMsg( AbstractMessage cm ) {
+    private void sendMsg( AbstractMessage am ) {
         try {
-            out.writeObject(cm);
+            out.writeObject(am);
             out.flush();
         } catch (IOException e) {
             e.printStackTrace();

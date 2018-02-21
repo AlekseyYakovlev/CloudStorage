@@ -31,8 +31,9 @@ public class ClientHandler {
             new Thread(() -> {
                 try {
                     while (true) {
+                        System.out.println("Preparing to listen");
                         Object obj = in.readObject();
-
+                        System.out.println("Have got an object");
                         if (obj instanceof AuthMessage) {
                             AuthMessage am = (AuthMessage) obj;
                             if (am.getLogin().equals("login") && am.getPass().equals("pass")) {
@@ -56,6 +57,7 @@ public class ClientHandler {
 
                         if (obj instanceof CommandMessage) {
                             CommandMessage cm = (CommandMessage) obj;
+                            System.out.println("command message received");
                             if (cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD) {
                                 try {
                                     FileMessage fm = new FileMessage(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()));
@@ -68,33 +70,27 @@ public class ClientHandler {
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
-//                }finally {
-//                    try {
-//                        in.close();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
+                }finally {
+                    try {
+                        in.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        this.socket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
 
             }).start();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                in.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                out.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                this.socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 

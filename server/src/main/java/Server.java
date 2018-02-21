@@ -23,6 +23,7 @@ public class Server {
 
 
         } catch (IOException e) {
+            System.out.println("Server exception");
             e.printStackTrace();
         } finally {
             try {
