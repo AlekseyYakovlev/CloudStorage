@@ -6,8 +6,10 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import lombok.extern.java.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+@Log
 public class Controller implements Initializable {
     private static final String REPOSITORY_DIR = "client/local_storage";
 
@@ -36,6 +39,9 @@ public class Controller implements Initializable {
     @FXML
     ListView<File> cloudList, localList;
 
+    @FXML
+    ProgressBar operationProgress;
+
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
@@ -47,7 +53,7 @@ public class Controller implements Initializable {
 
 
     @Override
-    public void initialize( URL location, ResourceBundle resources ) {
+    public void initialize(URL location, ResourceBundle resources) {
         setAuthorized(false);
         cloudFilesList = FXCollections.observableArrayList();
         cloudList.setItems(cloudFilesList);
@@ -56,7 +62,7 @@ public class Controller implements Initializable {
         refreshLocalList();
     }
 
-    public void setAuthorized( boolean authorized ) {
+    public void setAuthorized(boolean authorized) {
         this.authorized = authorized;
         authPanel.setManaged(!this.authorized);
         authPanel.setVisible(!this.authorized);
@@ -76,9 +82,9 @@ public class Controller implements Initializable {
             Thread t = new Thread(() -> {
                 try {
                     while (true) {
-//                        System.out.println("Preparing to listen");
+                        log.fine("Preparing to listen");
                         Object obj = in.readObject();
-//                        System.out.println("Have got an object");
+                        log.fine("Have got an object");
                         if (obj instanceof CommandMessage) {
                             CommandMessage cm = (CommandMessage) obj;
                             if (cm.getType() == CommandMessage.CMD_MSG_AUTH_OK) {
@@ -116,11 +122,6 @@ public class Controller implements Initializable {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-//                        try {
-//                            socket.close();
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
                 }
             });
             t.setDaemon(true);
@@ -130,23 +131,21 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnSendFile( ActionEvent actionEvent ) {
-        try {
-            FileMessage fm = new FileMessage(Paths.get("client/1.txt"));
-            sendMsg(fm);
-        } catch (IOException e) {
-            e.printStackTrace();
+    public void btnSendFile(ActionEvent actionEvent) {
+        File selectedItem = localList.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            FilePartitionWorker.sendFile(Paths.get(selectedItem.getAbsolutePath()), out);
         }
     }
 
-    public void tryToAuthorize( ActionEvent actionEvent ) {
+    public void tryToAuthorize(ActionEvent actionEvent) {
         if (socket == null || socket.isClosed()) connect();
         AuthMessage am = new AuthMessage(loginField.getText(), passField.getText());
         sendMsg(am);
     }
 
 
-    private void sendMsg( AbstractMessage am ) {
+    private void sendMsg(AbstractMessage am) {
         try {
             out.writeObject(am);
             out.flush();
@@ -155,7 +154,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void requestFileDownload( ActionEvent actionEvent ) {
+    public void requestFileDownload(ActionEvent actionEvent) {
         File file = cloudList.getSelectionModel().getSelectedItem();
         CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD, file);
         sendMsg(cm);
@@ -170,7 +169,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnDeleteFile( ActionEvent actionEvent ) {
+    public void btnDeleteFile(ActionEvent actionEvent) {
         try {
             File selectedItem = localList.getSelectionModel().getSelectedItem();
             if (selectedItem != null) Files.delete(Paths.get(selectedItem.getAbsolutePath()));
@@ -178,14 +177,13 @@ public class Controller implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
-    public void btnRefreshLocal( ActionEvent actionEvent ) {
+    public void btnRefreshLocal(ActionEvent actionEvent) {
         refreshLocalList();
     }
 
-    public void btnRefreshCloud( ActionEvent actionEvent ) {
+    public void btnRefreshCloud(ActionEvent actionEvent) {
         CommandMessage cm = new CommandMessage(CommandMessage.CMD_REQUEST_FILE_LIST);
         sendMsg(cm);
     }

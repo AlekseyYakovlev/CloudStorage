@@ -1,3 +1,4 @@
+import javafx.scene.control.ProgressBar;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ import java.util.Arrays;
 public class FilePartitionWorker {
     private static final int PART_SIZE = ConnectionSettings.PACKAGE_SIZE_FOR_FILE_TRANSFER;
 
-    public static void sendFile( Path path, ObjectOutputStream out ) {
+    public static void sendFile(Path path, ObjectOutputStream out) {
         try {
             byte[] fileData = Files.readAllBytes(path);
             int partsCount = fileData.length / PART_SIZE;
@@ -57,4 +58,6 @@ public class FilePartitionWorker {
         }
 
     }
+
+
 }
