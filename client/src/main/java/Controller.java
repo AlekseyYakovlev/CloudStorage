@@ -8,6 +8,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import lombok.extern.java.Log;
 
@@ -20,8 +22,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+
+//TODO: Разделить контроллер отображения и работу с сетью
 
 @Log
 public class Controller implements Initializable {
@@ -39,12 +44,12 @@ public class Controller implements Initializable {
     @FXML
     ListView<File> cloudList, localList;
 
+
     @FXML
-    ProgressBar operationProgress;
+    ProgressBar progressBar;
 
     private Socket socket;
     private ObjectOutputStream out;
-    private ObjectInputStream in;
 
     private boolean authorized;
 
@@ -53,16 +58,44 @@ public class Controller implements Initializable {
 
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {
+    public void initialize( URL location, ResourceBundle resources ) {
         setAuthorized(false);
         cloudFilesList = FXCollections.observableArrayList();
         cloudList.setItems(cloudFilesList);
         localFilesList = FXCollections.observableArrayList();
         localList.setItems(localFilesList);
         refreshLocalList();
+
+        localList.setOnDragOver(event -> {
+            if (event.getGestureSource() != localList && event.getDragboard().hasFiles()) {
+                event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+            }
+            event.consume();
+        });
+
+        localList.setOnDragDropped(event -> {
+            Dragboard drb = event.getDragboard();
+            boolean success = false;
+            if (drb.hasFiles()) {
+                for (int i = 0; i < drb.getFiles().size(); i++) {
+                    try {
+                        Path sourcePath = Paths.get(drb.getFiles().get(i).getAbsolutePath());
+                        Path destPath = Paths.get(REPOSITORY_DIR +"/"+ drb.getFiles().get(i).getName());
+                        Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                refreshLocalList();
+                success = true;
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        });
+
     }
 
-    public void setAuthorized(boolean authorized) {
+    public void setAuthorized( boolean authorized ) {
         this.authorized = authorized;
         authPanel.setManaged(!this.authorized);
         authPanel.setVisible(!this.authorized);
@@ -70,17 +103,14 @@ public class Controller implements Initializable {
         actionPanel1.setVisible(this.authorized);
         actionPanel2.setManaged(this.authorized);
         actionPanel2.setVisible(this.authorized);
-
     }
 
     public void connect() {
         try {
             socket = new Socket(ConnectionSettings.SERVER_IP, ConnectionSettings.SERVER_PORT);
             out = new ObjectOutputStream(socket.getOutputStream());
-            in = new ObjectInputStream(socket.getInputStream());
-
-            Thread t = new Thread(() -> {
-                try {
+            Thread th = new Thread(() -> {
+                try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
                     while (true) {
                         log.fine("Preparing to listen");
                         Object obj = in.readObject();
@@ -88,7 +118,7 @@ public class Controller implements Initializable {
                         if (obj instanceof CommandMessage) {
                             CommandMessage cm = (CommandMessage) obj;
                             if (cm.getType() == CommandMessage.CMD_MSG_AUTH_OK) {
-                                setAuthorized(true);
+                                Controller.this.setAuthorized(true);
                                 break;
                             }
                         }
@@ -105,18 +135,13 @@ public class Controller implements Initializable {
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
                             Path destPath = Paths.get(REPOSITORY_DIR + "/" + fm.getFilename());
-                            FilePartitionWorker.receiveFile(in, fm, destPath);
-                            Platform.runLater(this::refreshLocalList);
+                            FilePartitionWorker.receiveFile(in, fm, destPath, progressBar);
+                            Platform.runLater(Controller.this::refreshLocalList);
                         }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    try {
-                        in.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                     try {
                         out.close();
                     } catch (IOException e) {
@@ -124,39 +149,56 @@ public class Controller implements Initializable {
                     }
                 }
             });
-            t.setDaemon(true);
-            t.start();
+            th.setDaemon(true);
+            th.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void btnSendFile(ActionEvent actionEvent) {
+    public void btnSendFile( ActionEvent actionEvent ) {
         File selectedItem = localList.getSelectionModel().getSelectedItem();
-        if (selectedItem != null) {
-            FilePartitionWorker.sendFile(Paths.get(selectedItem.getAbsolutePath()), out);
-        }
+        if (selectedItem != null) new Thread(() -> {
+            synchronized (this) {
+                FilePartitionWorker.sendFile(out, Paths.get(selectedItem.getAbsolutePath()), progressBar);
+            }
+        }).start();
     }
 
-    public void tryToAuthorize(ActionEvent actionEvent) {
+    public void tryToAuthorize( ActionEvent actionEvent ) {
         if (socket == null || socket.isClosed()) connect();
         AuthMessage am = new AuthMessage(loginField.getText(), passField.getText());
         sendMsg(am);
     }
 
 
-    private void sendMsg(AbstractMessage am) {
+    private void sendMsg( AbstractMessage am ) {
         try {
-            out.writeObject(am);
-            out.flush();
+            synchronized (this) {
+                out.writeObject(am);
+                out.flush();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void requestFileDownload(ActionEvent actionEvent) {
+    public void requestFileDownload( ActionEvent actionEvent ) {
+        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD);
+    }
+
+    public void btnDeleteCloudFile( ActionEvent actionEvent ) {
+        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DELETE);
+    }
+
+    public void requestCloud( int commandMessageType ) {
         File file = cloudList.getSelectionModel().getSelectedItem();
-        CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD, file);
+        CommandMessage cm = new CommandMessage(commandMessageType, file);
+        sendMsg(cm);
+    }
+
+    private void refreshCloudList() {
+        CommandMessage cm = new CommandMessage(CommandMessage.CMD_REQUEST_FILE_LIST);
         sendMsg(cm);
     }
 
@@ -169,7 +211,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnDeleteFile(ActionEvent actionEvent) {
+    public void btnDeleteLocalFile( ActionEvent actionEvent ) {
         try {
             File selectedItem = localList.getSelectionModel().getSelectedItem();
             if (selectedItem != null) Files.delete(Paths.get(selectedItem.getAbsolutePath()));
@@ -179,12 +221,13 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnRefreshLocal(ActionEvent actionEvent) {
+    public void btnRefreshLocal( ActionEvent actionEvent ) {
         refreshLocalList();
     }
 
-    public void btnRefreshCloud(ActionEvent actionEvent) {
-        CommandMessage cm = new CommandMessage(CommandMessage.CMD_REQUEST_FILE_LIST);
-        sendMsg(cm);
+    public void btnRefreshCloud( ActionEvent actionEvent ) {
+        refreshCloudList();
     }
+
+
 }

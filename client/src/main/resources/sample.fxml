@@ -12,36 +12,41 @@
 <?import javafx.scene.control.ProgressBar?>
 <VBox fx:controller="Controller"
       xmlns:fx="http://javafx.com/fxml" alignment="center">
+    <ProgressBar fx:id="progressBar" managed="false" visible="false" maxWidth="Infinity"/>
     <HBox fx:id="authPanel">
         <TextField fx:id="loginField" HBox.hgrow="ALWAYS" promptText="Login"/>
         <PasswordField fx:id="passField" HBox.hgrow="ALWAYS" promptText="Password"/>
         <Button text="Authorize" HBox.hgrow="ALWAYS" onAction="#tryToAuthorize"/>
     </HBox>
-    <ProgressBar fx:id="operationProgress" managed="false" visible="false"/>
     <HBox VBox.vgrow="ALWAYS">
         <VBox HBox.hgrow="ALWAYS">
-            <Label alignment="CENTER" contentDisplay="CENTER" text="Local storage" textAlignment="CENTER" maxWidth="-Infinity">
+            <Label alignment="CENTER" contentDisplay="CENTER" text="Local storage" textAlignment="CENTER"
+                   maxWidth="Infinity">
                 <font>
                     <Font name="System Bold" size="14.0"/>
                 </font>
             </Label>
             <ListView fx:id="localList"/>
-            <HBox fx:id="actionPanel1" visible="false" managed="false">
-                <Button text="Send file" onAction="#btnSendFile"/>
-                <Button text="Delete local file" onAction="#btnDeleteFile"/>
-                <Button text="Refresh" onAction="#btnRefreshLocal"/>
+            <HBox fx:id="actionPanel1" visible="false" managed="false" maxWidth="Infinity" HBox.hgrow="ALWAYS">
+                <Button text="Send file" onAction="#btnSendFile" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Button text="Delete local file" onAction="#btnDeleteLocalFile" maxWidth="Infinity"
+                        HBox.hgrow="ALWAYS"/>
+                <Button text="Refresh" onAction="#btnRefreshLocal" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
             </HBox>
         </VBox>
         <VBox HBox.hgrow="ALWAYS">
-            <Label alignment="CENTER" contentDisplay="CENTER" text="Cloud storage" textAlignment="CENTER" maxWidth="-Infinity">
+            <Label alignment="CENTER" contentDisplay="CENTER" text="Cloud storage" textAlignment="CENTER"
+                   maxWidth="Infinity">
                 <font>
                     <Font name="System Bold" size="14.0"/>
                 </font>
             </Label>
             <ListView fx:id="cloudList"/>
-            <HBox fx:id="actionPanel2" visible="false" managed="false">
-                <Button text="Download file" onAction="#requestFileDownload"/>
-                <Button text="Refresh" onAction="#btnRefreshCloud"/>
+            <HBox fx:id="actionPanel2" visible="false" managed="false" maxWidth="Infinity" HBox.hgrow="ALWAYS">
+                <Button text="Download file" onAction="#requestFileDownload" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Button text="Delete cloud file" onAction="#btnDeleteCloudFile" maxWidth="Infinity"
+                        HBox.hgrow="ALWAYS"/>
+                <Button text="Refresh" onAction="#btnRefreshCloud" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
             </HBox>
         </VBox>
     </HBox>

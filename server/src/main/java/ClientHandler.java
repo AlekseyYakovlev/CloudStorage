@@ -1,3 +1,4 @@
+import javafx.event.ActionEvent;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -54,11 +55,14 @@ public class ClientHandler {
                 }
 
                 while (true) {
+                    if(socket.isClosed()) break;
                     Object obj = in.readObject();
                     if (obj instanceof AbstractMessage) {
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
-                            Files.write(Paths.get(REPOSITORY_DIR + "/" + username + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+                            FilePartitionWorker.receiveFile(in,fm,Paths.get(REPOSITORY_DIR + "/" + username + "/" + fm.getFilename()),null);
+                            sendFileList();
+                            continue;
                         }
                     }
 
@@ -66,20 +70,41 @@ public class ClientHandler {
                         CommandMessage cm = (CommandMessage) obj;
                         log.fine("command message received");
                         if (cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD) {
-                            FilePartitionWorker.sendFile(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()), out);
-                            log.fine("requested "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            FilePartitionWorker.sendFile(out, Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()),null);
+                            log.fine("requested file: "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
                             continue;
                         }
-                        if(cm.getType() == CommandMessage.CMD_REQUEST_FILE_LIST) sendFileList();
+                        if(cm.getType() == CommandMessage.CMD_REQUEST_FILE_LIST) {
+                            sendFileList();
+                            continue;
+                        }
+                        if(cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DELETE){
+                            deleteFile(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()));
+                            log.fine("Deleted file: "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            sendFileList();
+                            continue;
+                        }
                     }
 
                 }
-            } catch (IOException | ClassNotFoundException e) {
+            } catch ( ClassNotFoundException e) {
                 e.printStackTrace();
+            } catch (IOException e) {
+                log.fine("Terminated session of user :"+ username);
             }
 
         }).start();
         log.fine("New thread started for socket: " + socket.toString());
+    }
+
+    private void deleteFile(Path path) {
+            try {
+                Files.delete(path);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
     }
 
     private void sendMsg( AbstractMessage cm ) {
