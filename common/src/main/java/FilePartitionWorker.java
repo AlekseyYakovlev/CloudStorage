@@ -2,6 +2,7 @@ import javafx.application.Platform;
 import javafx.scene.control.ProgressBar;
 import lombok.extern.java.Log;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -15,6 +16,8 @@ import java.util.Arrays;
  * @author Aleksey Yakovlev on 21.02.2018
  * @project CloudStorage
  */
+//TODO Исправить сочетание методов интерфейса и сетевых методов
+
 @Log
 public class FilePartitionWorker {
     enum TransferType {DOWNLOAD, UPLOAD}
@@ -23,8 +26,9 @@ public class FilePartitionWorker {
 
 
     public static void sendFile( ObjectOutputStream out, String pathString, ProgressBar progressBar ) {
-        Path path =  Paths.get(pathString);
+
         try {
+            Path path = Paths.get(pathString);
             showProgressBar(progressBar, true);
             rotateProgressBar(progressBar, TransferType.UPLOAD);
             byte[] fileData = Files.readAllBytes(path);
@@ -55,8 +59,9 @@ public class FilePartitionWorker {
     }
 
 
-    public static void receiveFile( ObjectInputStream in, FileMessage fm, Path path, ProgressBar progressBar ) {
+    public static void receiveFile( ObjectInputStream in, FileMessage fm, String directory, ProgressBar progressBar ) {
         try {
+            Path path = Paths.get(directory + File.separator + fm.getFilename());
             showProgressBar(progressBar, true);
             rotateProgressBar(progressBar, TransferType.DOWNLOAD);
             if (Files.exists(path)) Files.delete(path);

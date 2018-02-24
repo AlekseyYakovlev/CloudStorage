@@ -11,6 +11,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
+import lombok.Getter;
 import lombok.extern.java.Log;
 
 import java.io.File;
@@ -19,10 +20,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ResourceBundle;
 
 //TODO: Разделить контроллер отображения и работу с сетью
@@ -34,24 +31,31 @@ public class Controller implements Initializable {
     @FXML
     HBox authPanel, actionPanel1, actionPanel2;
 
+    @Getter
     @FXML
     TextField loginField;
 
+    @Getter
     @FXML
     PasswordField passField;
 
+    @Getter
     @FXML
     ListView<File> cloudList, localList;
 
 
+    @Getter
     @FXML
     ProgressBar progressBar;
 
     private Socket socket;
+
+    @Getter
     private ObjectOutputStream out;
 
     private boolean authorized;
 
+    @Getter
     private ObservableList<File> cloudFilesList;
     private ObservableList<File> localFilesList;
 
@@ -76,23 +80,15 @@ public class Controller implements Initializable {
             Dragboard drb = event.getDragboard();
             boolean success = false;
             if (drb.hasFiles()) {
-                for (int i = 0; i < drb.getFiles().size(); i++) {
-                    try {
-                        Path sourcePath = Paths.get(drb.getFiles().get(i).getAbsolutePath());
-                        Path destPath = Paths.get(REPOSITORY_DIR + "/" + drb.getFiles().get(i).getName());
-                        Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+                BaseFileOperations.copyDraggedFilesToDir(drb.getFiles(), REPOSITORY_DIR);
                 refreshLocalList();
                 success = true;
             }
             event.setDropCompleted(success);
             event.consume();
         });
-
     }
+
 
     public void setAuthorized( boolean authorized ) {
         this.authorized = authorized;
@@ -123,6 +119,7 @@ public class Controller implements Initializable {
                         }
                     }
                     while (true) {
+                        if(socket.isClosed()) break;
                         Object obj = in.readObject();
                         if (obj instanceof FileListMessage) {
                             FileListMessage flm = (FileListMessage) obj;
@@ -133,8 +130,8 @@ public class Controller implements Initializable {
                         }
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
-                            Path destPath = Paths.get(REPOSITORY_DIR + "/" + fm.getFilename());
-                            FilePartitionWorker.receiveFile(in, fm, destPath, progressBar);
+                            //TODO Refactor needed:
+                            FilePartitionWorker.receiveFile(in, fm, REPOSITORY_DIR, progressBar);
                             Platform.runLater(Controller.this::refreshLocalList);
                         }
                     }
@@ -192,8 +189,10 @@ public class Controller implements Initializable {
 
     public void requestCloud( int commandMessageType ) {
         File file = cloudList.getSelectionModel().getSelectedItem();
-        CommandMessage cm = new CommandMessage(commandMessageType, file);
-        sendMsg(cm);
+        if (file != null) {
+            CommandMessage cm = new CommandMessage(commandMessageType, file);
+            sendMsg(cm);
+        }
     }
 
     private void refreshCloudList() {
@@ -202,14 +201,16 @@ public class Controller implements Initializable {
     }
 
     public void refreshLocalList() {
-            localFilesList.clear();
-            localFilesList.addAll(BaseFileOperations.getFileListOfDir(REPOSITORY_DIR));
+        localFilesList.clear();
+        localFilesList.addAll(BaseFileOperations.getFileListOfDir(REPOSITORY_DIR));
     }
 
     public void btnDeleteLocalFile( ActionEvent actionEvent ) {
         File selectedItem = localList.getSelectionModel().getSelectedItem();
-        BaseFileOperations.deleteFile(selectedItem);
-        refreshLocalList();
+        if (selectedItem != null) {
+            BaseFileOperations.deleteFile(selectedItem.getAbsolutePath());
+            refreshLocalList();
+        }
     }
 
     public void btnRefreshLocal( ActionEvent actionEvent ) {

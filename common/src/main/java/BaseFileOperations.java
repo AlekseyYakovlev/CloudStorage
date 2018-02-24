@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,6 +56,18 @@ public class BaseFileOperations {
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
+        }
+    }
+
+    public static void copyDraggedFilesToDir( List<File> draggedFileList, String dir ) {
+        for (File draggedFile : draggedFileList) {
+            try {
+                Path sourcePath = Paths.get(draggedFile.getAbsolutePath());
+                Path destPath = Paths.get(dir + "/" + draggedFile.getName());
+                Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

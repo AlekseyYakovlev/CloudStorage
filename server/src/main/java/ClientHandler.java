@@ -2,7 +2,6 @@ import lombok.extern.java.Log;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.*;
 
 //TODO: 0:45:21
 
@@ -15,16 +14,16 @@ import java.nio.file.*;
 public class ClientHandler {
     private static final String REPOSITORY_DIR = "server/repository";
     private String currentUsersDir;
-    private Server server;
-
-    private Socket socket;
+//    private Server server;
+//
+//    private Socket socket;
     private ObjectOutputStream out;
 
     private String username;
 
     public ClientHandler( Server server, Socket socket ) {
-        this.server = server;
-        this.socket = socket;
+//        this.server = server;
+//        this.socket = socket;
 
         new Thread(() -> {
             try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -58,7 +57,7 @@ public class ClientHandler {
                     if (obj instanceof AbstractMessage) {
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
-                            FilePartitionWorker.receiveFile(in,fm,Paths.get(REPOSITORY_DIR + "/" + username + "/" + fm.getFilename()),null);
+                            FilePartitionWorker.receiveFile(in,fm,(currentUsersDir),null);
                             sendFileList();
                             continue;
                         }
@@ -69,7 +68,6 @@ public class ClientHandler {
                         log.fine("command message received");
                         if (cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD) {
                             FilePartitionWorker.sendFile(out, ((File) cm.getAttachment()[0]).getAbsolutePath(),null);
-
                             continue;
                         }
                         if(cm.getType() == CommandMessage.CMD_REQUEST_FILE_LIST) {
@@ -94,17 +92,6 @@ public class ClientHandler {
         log.fine("New thread started for socket: " + socket.toString());
     }
 
-    private void checkUsersDir() {
-            if(Files.notExists(Paths.get(REPOSITORY_DIR,username))) {
-                try {
-                    Files.createDirectory(Paths.get(REPOSITORY_DIR,username));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-    }
-
-
     private void sendMsg( AbstractMessage cm ) {
         try {
             out.writeObject(cm);
@@ -116,18 +103,9 @@ public class ClientHandler {
         }
     }
 
-    public String getUserRootPath() {
-        return REPOSITORY_DIR + "/" + username;
-    }
-
     public void sendFileList() {
-        try {
-            FileListMessage flm = new FileListMessage(Paths.get(getUserRootPath()));
+            FileListMessage flm = new FileListMessage(BaseFileOperations.getFileListOfDir(currentUsersDir));
             sendMsg(flm);
             log.fine("FileList sent");
-        } catch (IOException e) {
-            log.severe("Error: IOException while sending FileList: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 }
