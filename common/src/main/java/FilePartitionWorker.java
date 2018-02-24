@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 
@@ -21,7 +22,8 @@ public class FilePartitionWorker {
     private static final int PART_SIZE = ConnectionSettings.PACKAGE_SIZE_FOR_FILE_TRANSFER;
 
 
-    public static void sendFile( ObjectOutputStream out, Path path, ProgressBar progressBar ) {
+    public static void sendFile( ObjectOutputStream out, String pathString, ProgressBar progressBar ) {
+        Path path =  Paths.get(pathString);
         try {
             showProgressBar(progressBar, true);
             rotateProgressBar(progressBar, TransferType.UPLOAD);
@@ -44,6 +46,7 @@ public class FilePartitionWorker {
                 out.flush();
             }
             showProgressBar(progressBar, false);
+            log.fine("File: " + path.toString() + " sent in " + partsCount + " parts");
         } catch (IOException e) {
             showProgressBar(progressBar, false);
             log.severe("Error: IOException while sending file: " + e.getMessage());

@@ -1,4 +1,3 @@
-import javafx.event.ActionEvent;
 import lombok.extern.java.Log;
 
 import java.io.*;
@@ -15,6 +14,7 @@ import java.nio.file.*;
 @Log
 public class ClientHandler {
     private static final String REPOSITORY_DIR = "server/repository";
+    private String currentUsersDir;
     private Server server;
 
     private Socket socket;
@@ -44,7 +44,7 @@ public class ClientHandler {
                             this.username = "client";
                             CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_AUTH_OK);
                             sendMsg(cm);
-                            checkUsersDir();
+                            currentUsersDir=BaseFileOperations.createDirIfNone(REPOSITORY_DIR,username);
                             sendFileList();
                             log.fine("Have got an object");
                             break;
@@ -68,8 +68,8 @@ public class ClientHandler {
                         CommandMessage cm = (CommandMessage) obj;
                         log.fine("command message received");
                         if (cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD) {
-                            FilePartitionWorker.sendFile(out, Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()),null);
-                            log.fine("requested file: "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            FilePartitionWorker.sendFile(out, ((File) cm.getAttachment()[0]).getAbsolutePath(),null);
+
                             continue;
                         }
                         if(cm.getType() == CommandMessage.CMD_REQUEST_FILE_LIST) {
@@ -77,8 +77,7 @@ public class ClientHandler {
                             continue;
                         }
                         if(cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DELETE){
-                            deleteFile(Paths.get(((File) cm.getAttachment()[0]).getAbsolutePath()));
-                            log.fine("Deleted file: "+ ((File) cm.getAttachment()[0]).getAbsolutePath());
+                            BaseFileOperations.deleteFile(cm);
                             sendFileList();
                             continue;
                         }
@@ -103,19 +102,8 @@ public class ClientHandler {
                     e.printStackTrace();
                 }
             }
-
-
     }
 
-    private void deleteFile(Path path) {
-            try {
-                Files.delete(path);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-    }
 
     private void sendMsg( AbstractMessage cm ) {
         try {

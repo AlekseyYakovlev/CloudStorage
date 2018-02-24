@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 
 //TODO: Разделить контроллер отображения и работу с сетью
 
@@ -80,7 +79,7 @@ public class Controller implements Initializable {
                 for (int i = 0; i < drb.getFiles().size(); i++) {
                     try {
                         Path sourcePath = Paths.get(drb.getFiles().get(i).getAbsolutePath());
-                        Path destPath = Paths.get(REPOSITORY_DIR +"/"+ drb.getFiles().get(i).getName());
+                        Path destPath = Paths.get(REPOSITORY_DIR + "/" + drb.getFiles().get(i).getName());
                         Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -160,7 +159,7 @@ public class Controller implements Initializable {
         File selectedItem = localList.getSelectionModel().getSelectedItem();
         if (selectedItem != null) new Thread(() -> {
             synchronized (this) {
-                FilePartitionWorker.sendFile(out, Paths.get(selectedItem.getAbsolutePath()), progressBar);
+                FilePartitionWorker.sendFile(out, selectedItem.getAbsolutePath(), progressBar);
             }
         }).start();
     }
@@ -203,22 +202,14 @@ public class Controller implements Initializable {
     }
 
     public void refreshLocalList() {
-        try {
             localFilesList.clear();
-            localFilesList.addAll(Files.list(Paths.get(REPOSITORY_DIR)).map(Path::toFile).collect(Collectors.toList()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            localFilesList.addAll(BaseFileOperations.getFileListOfDir(REPOSITORY_DIR));
     }
 
     public void btnDeleteLocalFile( ActionEvent actionEvent ) {
-        try {
-            File selectedItem = localList.getSelectionModel().getSelectedItem();
-            if (selectedItem != null) Files.delete(Paths.get(selectedItem.getAbsolutePath()));
-            refreshLocalList();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        File selectedItem = localList.getSelectionModel().getSelectedItem();
+        BaseFileOperations.deleteFile(selectedItem);
+        refreshLocalList();
     }
 
     public void btnRefreshLocal( ActionEvent actionEvent ) {
