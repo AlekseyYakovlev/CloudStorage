@@ -3,10 +3,7 @@ import lombok.extern.java.Log;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 
 //TODO: 0:45:21
 
@@ -47,6 +44,7 @@ public class ClientHandler {
                             this.username = "client";
                             CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_AUTH_OK);
                             sendMsg(cm);
+                            checkUsersDir();
                             sendFileList();
                             log.fine("Have got an object");
                             break;
@@ -95,6 +93,18 @@ public class ClientHandler {
 
         }).start();
         log.fine("New thread started for socket: " + socket.toString());
+    }
+
+    private void checkUsersDir() {
+            if(Files.notExists(Paths.get(REPOSITORY_DIR,username))) {
+                try {
+                    Files.createDirectory(Paths.get(REPOSITORY_DIR,username));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
     }
 
     private void deleteFile(Path path) {
