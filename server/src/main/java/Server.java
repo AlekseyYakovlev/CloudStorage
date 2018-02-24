@@ -6,7 +6,7 @@ import java.net.Socket;
  * @author Aleksey Yakovlev on 17.02.2018
  * @project CloudStorage
  */
-public class Server {
+class Server {
     private static final String TAG = "server.Server";
     private ServerSocket serverSocket;
 

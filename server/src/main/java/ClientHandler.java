@@ -27,7 +27,7 @@ public class ClientHandler {
 
         new Thread(() -> {
             try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                 ObjectOutputStream thr_out = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectOutputStream thr_out = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 this.out = thr_out;
                 while (true) {
@@ -77,7 +77,6 @@ public class ClientHandler {
                         if(cm.getType() == CommandMessage.CMD_MSG_REQUEST_FILE_DELETE){
                             BaseFileOperations.deleteFile(cm);
                             sendFileList();
-                            continue;
                         }
                     }
 

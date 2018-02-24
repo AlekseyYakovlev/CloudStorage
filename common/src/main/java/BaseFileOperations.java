@@ -46,10 +46,6 @@ public class BaseFileOperations {
         deleteFile(((File) cm.getAttachment()[0]).getAbsolutePath());
     }
 
-    public static void deleteFile( File file ) {
-        if (file != null) deleteFile(file.getAbsolutePath());
-    }
-
     public static List<File> getFileListOfDir( String dir ) {
         try {
             return Files.list(Paths.get(dir)).map(Path::toFile).collect(Collectors.toList());

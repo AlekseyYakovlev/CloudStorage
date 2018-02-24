@@ -16,7 +16,7 @@ import java.util.Arrays;
  * @author Aleksey Yakovlev on 21.02.2018
  * @project CloudStorage
  */
-//TODO Исправить сочетание методов интерфейса и сетевых методов
+
 
 @Log
 public class FilePartitionWorker {
@@ -83,7 +83,7 @@ public class FilePartitionWorker {
         }
 
     }
-
+    //TODO Вынести методы работы с прогрес баром в Controller
     private static void showProgressBar( ProgressBar progressBar, boolean state ) {
         if (progressBar == null) return;
         Platform.runLater(() -> {

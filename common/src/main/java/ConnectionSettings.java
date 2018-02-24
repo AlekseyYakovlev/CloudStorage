@@ -12,7 +12,7 @@ public class ConnectionSettings {
     public static final String SERVER_IP="localhost";
 
     public static final int SERVER_PORT=8189;
-    public static final Proxy CONNECTION_STRING = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(SERVER_IP,SERVER_PORT));
+//    public static final Proxy CONNECTION_STRING = new Proxy(Proxy.Type.HTTP,new InetSocketAddress(SERVER_IP,SERVER_PORT));
 
     public static final int PACKAGE_SIZE_FOR_FILE_TRANSFER =262144; // 256Kb
 
