@@ -24,6 +24,7 @@ public class ClientHandler {
     public ClientHandler( Server server, Socket socket ) {
 //        this.server = server;
 //        this.socket = socket;
+        AuthorizationController authController = AuthorizationController.getInstance();
 
         new Thread(() -> {
             try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -37,8 +38,7 @@ public class ClientHandler {
                     if (obj instanceof AuthMessage) {
                         AuthMessage am = (AuthMessage) obj;
                         log.fine("Authorization request");
-                        //TODO: Update authorization procedure
-                        if (am.getLogin().equals("login") && am.getPass().equals("pass")) {
+                        if (authController.checkLoginPass(am.getLogin(),am.getPass())) {
                             log.fine("Authorization OK");
                             this.username = "client";
                             CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_AUTH_OK);
