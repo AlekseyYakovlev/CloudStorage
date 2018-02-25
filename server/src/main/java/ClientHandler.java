@@ -14,16 +14,12 @@ import java.net.Socket;
 public class ClientHandler {
     private static final String REPOSITORY_DIR = "server/repository";
     private String currentUsersDir;
-//    private Server server;
-//
-//    private Socket socket;
+    
     private ObjectOutputStream out;
 
     private String username;
 
     public ClientHandler( Server server, Socket socket ) {
-//        this.server = server;
-//        this.socket = socket;
         AuthorizationController authController = AuthorizationController.getInstance();
 
         new Thread(() -> {
@@ -40,7 +36,7 @@ public class ClientHandler {
                         log.fine("Authorization request");
                         if (authController.checkLoginPass(am.getLogin(),am.getPass())) {
                             log.fine("Authorization OK");
-                            this.username = "client";
+                            this.username = am.getLogin();
                             CommandMessage cm = new CommandMessage(CommandMessage.CMD_MSG_AUTH_OK);
                             sendMsg(cm);
                             currentUsersDir=BaseFileOperations.createDirIfNone(REPOSITORY_DIR,username);
