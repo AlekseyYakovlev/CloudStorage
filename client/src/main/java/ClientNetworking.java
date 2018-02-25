@@ -46,7 +46,7 @@ public class ClientNetworking {
                         }
                         if (obj instanceof FileMessage) {
                             FileMessage fm = (FileMessage) obj;
-                            FilePartitionWorker.receiveFile(in, fm, Controller.getClientLocalStorage(), controller.getProgressBar());
+                            FilePartitionWorker.receiveFile(in, fm, Controller.getClientLocalStorage(), controller.getDownloadProgressBarController());
                             Platform.runLater(controller::refreshLocalList);
                         }
                     }
@@ -67,7 +67,7 @@ public class ClientNetworking {
         }
     }
 
-    public void requestAuthorization(String login, String pass){
+    public void requestAuthorization( String login, String pass ) {
         if (socket == null || socket.isClosed()) connect();
         AuthMessage am = new AuthMessage(login, pass);
         sendMsg(am);
@@ -75,22 +75,24 @@ public class ClientNetworking {
 
 
     private void sendMsg( AbstractMessage am ) {
-        try {
-            synchronized (controller) {
-                out.writeObject(am);
-                out.flush();
+        new Thread(() -> {
+            synchronized (out) {
+                try {
+                    out.writeObject(am);
+                    out.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        }).start();
     }
 
     public void requestFileDownload( File file ) {
-        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD,file);
+        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DOWNLOAD, file);
     }
 
     public void requestDeleteCloud( File file ) {
-        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DELETE,file);
+        requestCloud(CommandMessage.CMD_MSG_REQUEST_FILE_DELETE, file);
     }
 
     private void requestCloud( int commandMessageType, File file ) {
@@ -107,8 +109,8 @@ public class ClientNetworking {
 
     public void SendFile( File selectedItem ) {
         if (selectedItem != null) new Thread(() -> {
-            synchronized (this) {
-                FilePartitionWorker.sendFile(out, selectedItem.getAbsolutePath(), controller.getProgressBar());
+            synchronized (out) {
+                FilePartitionWorker.sendFile(out, selectedItem.getAbsolutePath(), controller.getUploadProgressBarController());
             }
         }).start();
     }

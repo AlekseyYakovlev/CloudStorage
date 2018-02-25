@@ -10,7 +10,7 @@
 <?import javafx.scene.control.ProgressBar?>
 <VBox fx:controller="Controller"
       xmlns:fx="http://javafx.com/fxml" alignment="center">
-    <ProgressBar fx:id="progressBar" managed="false" visible="false" maxWidth="Infinity"/>
+
     <HBox fx:id="authPanel">
         <TextField fx:id="loginField" HBox.hgrow="ALWAYS" promptText="Login"/>
         <PasswordField fx:id="passField" HBox.hgrow="ALWAYS" promptText="Password"/>
@@ -48,4 +48,6 @@
             </HBox>
         </VBox>
     </HBox>
+    <ProgressBar fx:id="downloadProgressBar" managed="false" visible="false" maxWidth="Infinity"/>
+    <ProgressBar fx:id="uploadProgressBar" managed="false" visible="false" maxWidth="Infinity"/>
 </VBox>

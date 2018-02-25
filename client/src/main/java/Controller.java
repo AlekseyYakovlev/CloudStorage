@@ -24,6 +24,8 @@ public class Controller implements Initializable {
     private static final String clientLocalStorage = "client/local_storage";
     private final ClientNetworking clientNetworking = new ClientNetworking(this);
 
+
+
     @FXML
     HBox authPanel, actionPanel1, actionPanel2;
 
@@ -37,9 +39,12 @@ public class Controller implements Initializable {
     ListView<File> cloudList, localList;
 
 
-    @Getter
+
     @FXML
-    ProgressBar progressBar;
+    ProgressBar downloadProgressBar, uploadProgressBar;
+
+    @Getter
+    ProgressBarController downloadProgressBarController, uploadProgressBarController;
 
     private boolean authorized;
 
@@ -58,6 +63,11 @@ public class Controller implements Initializable {
         refreshLocalList();
 
         setDragAndDropListeners();
+
+        downloadProgressBar.setRotate(180.0);
+        downloadProgressBarController =new ProgressBarController(downloadProgressBar);
+        uploadProgressBarController =new ProgressBarController(uploadProgressBar);
+
     }
 
     private void setDragAndDropListeners() {
@@ -97,7 +107,7 @@ public class Controller implements Initializable {
     }
 
     public void tryToAuthorize( ActionEvent actionEvent ) {
-        clientNetworking.requestAuthorization(loginField.getText(),passField.getText());
+        clientNetworking.requestAuthorization(loginField.getText(), passField.getText());
     }
 
     public void btnRequestFileDownload( ActionEvent actionEvent ) {
@@ -134,4 +144,5 @@ public class Controller implements Initializable {
         cloudFilesList.clear();
         cloudFilesList.addAll(files);
     }
+
 }
